@@ -1,9 +1,17 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models.branch import Branch
 from app.schemas.branch import BranchCreate, BranchRead
 
 
-def list_items() -> list[BranchRead]:
-    return [BranchRead(id=1, club_id=1, name="Main Branch")]
+def list_items(db: Session) -> list[Branch]:
+    return list(db.scalars(select(Branch).order_by(Branch.id)))
 
 
-def create_item(payload: BranchCreate) -> BranchRead:
-    return BranchRead(id=2, **payload.model_dump())
+def create_item(db: Session, payload: BranchCreate) -> Branch:
+    item = Branch(**payload.model_dump())
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item

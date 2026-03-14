@@ -1,10 +1,18 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
+from app.core.constants import ReservationStatus
 
 
 class ReservationBase(BaseModel):
     seat_id: int
     user_id: int
-    status: str = "pending"
+    start_at: datetime
+    end_at: datetime
+    status: str = ReservationStatus.CONFIRMED.value
+    expires_at: datetime | None = None
+    cancelled_at: datetime | None = None
 
 
 class ReservationCreate(ReservationBase):
@@ -12,4 +20,6 @@ class ReservationCreate(ReservationBase):
 
 
 class ReservationRead(ReservationBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int

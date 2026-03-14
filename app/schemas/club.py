@@ -1,8 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ClubBase(BaseModel):
     name: str
+    description: str | None = None
+    is_active: bool = True
 
 
 class ClubCreate(ClubBase):
@@ -10,4 +12,6 @@ class ClubCreate(ClubBase):
 
 
 class ClubRead(ClubBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
