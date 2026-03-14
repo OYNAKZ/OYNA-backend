@@ -19,6 +19,18 @@ class BranchCreate(BranchBase):
     pass
 
 
+class BranchUpdate(BaseModel):
+    club_id: int | None = None
+    name: str | None = None
+    address: str | None = None
+    city: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    open_time: time | None = None
+    close_time: time | None = None
+    is_active: bool | None = None
+
+
 class BranchRead(BranchBase):
     model_config = ConfigDict(from_attributes=True)
 

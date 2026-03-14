@@ -13,6 +13,14 @@ class ZoneCreate(ZoneBase):
     pass
 
 
+class ZoneUpdate(BaseModel):
+    branch_id: int | None = None
+    name: str | None = None
+    zone_type: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
 class ZoneRead(ZoneBase):
     model_config = ConfigDict(from_attributes=True)
 

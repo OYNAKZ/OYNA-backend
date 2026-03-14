@@ -15,6 +15,16 @@ class SeatCreate(SeatBase):
     pass
 
 
+class SeatUpdate(BaseModel):
+    zone_id: int | None = None
+    code: str | None = None
+    seat_type: str | None = None
+    is_active: bool | None = None
+    is_maintenance: bool | None = None
+    x_position: float | None = None
+    y_position: float | None = None
+
+
 class SeatRead(SeatBase):
     model_config = ConfigDict(from_attributes=True)
 

@@ -11,6 +11,12 @@ class ClubCreate(ClubBase):
     pass
 
 
+class ClubUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
 class ClubRead(ClubBase):
     model_config = ConfigDict(from_attributes=True)
 
