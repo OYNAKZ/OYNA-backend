@@ -2,15 +2,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Project API"
-    app_version: str = "0.1.0"
-    debug: bool = True
-    database_url: str = "sqlite:///./project.db"
-    secret_key: str = "change-me"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    database_url: str
+    jwt_secret_key: str
+    access_token_expire_minutes: int = 60
+    app_name:str
+    app_version:str
+    model_config = SettingsConfigDict(env_file="C:/Users/LEGION/Desktop/OYNA/.env", extra="ignore")
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 settings = Settings()
+print("DATABASE_URL =", settings.database_url)
+print("JWT_SECRET_KEY =", settings.jwt_secret_key)
