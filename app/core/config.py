@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     database_url: str
     jwt_secret_key: str = Field(validation_alias=AliasChoices("JWT_SECRET_KEY", "SECRET_KEY"))
     access_token_expire_minutes: int = 60
-    model_config = SettingsConfigDict(env_file="C:/Users/LEGION/Desktop/OYNA/.env", extra="ignore")
+    model_config = SettingsConfigDict(env_file="/Users/meirbektokabaev/IdeaProjects/OYNA/.env", extra="ignore")
 
 
 settings = Settings()

@@ -13,6 +13,9 @@ class UserRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def get_all(self) -> list [User]:
+        return list(self.db.scalars(select(User)))
+
     def get_by_id(self, user_id: int) -> User | None:
         return self.db.get(User, user_id)
 

@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, branches, clubs, health, reservations, seats, sessions, zones
+from app.api.routes import auth, branches, clubs, health, reservations, seats, sessions, users, zones
 from app.core.constants import API_V1_PREFIX
 
 
 api_router = APIRouter(prefix=API_V1_PREFIX)
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(clubs.router, prefix="/clubs", tags=["clubs"])
 api_router.include_router(branches.router, prefix="/branches", tags=["branches"])
 api_router.include_router(zones.router, prefix="/zones", tags=["zones"])
