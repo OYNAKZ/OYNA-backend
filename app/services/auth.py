@@ -3,16 +3,16 @@ from fastapi import HTTPException, status
 from app.core.db import SessionLocal
 from app.core.security import create_access_token, hash_password, verify_password
 from app.repositories.user import UserRepository
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate, UserRead
 
 
-def authenticate_user(payload: LoginRequest) -> TokenResponse:
+def authenticate_user(email: str, password: str) -> TokenResponse:
     with SessionLocal() as db:
         repo = UserRepository(db)
-        user = repo.get_by_email(str(payload.email))
+        user = repo.get_by_email(email)
 
-        if user is None or not verify_password(payload.password, user.password_hash):
+        if user is None or not verify_password(password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
