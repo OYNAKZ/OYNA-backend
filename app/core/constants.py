@@ -11,6 +11,10 @@ class UserRole(str, Enum):
     PLATFORM_ADMIN = "platform_admin"
 
 
+STAFF_ROLES = (UserRole.CLUB_ADMIN.value, UserRole.OWNER.value, UserRole.PLATFORM_ADMIN.value)
+ADMIN_ROLES = (UserRole.OWNER.value, UserRole.PLATFORM_ADMIN.value)
+
+
 class ReservationStatus(str, Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"

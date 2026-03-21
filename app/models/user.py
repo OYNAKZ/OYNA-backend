@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, String, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import UserRole
@@ -13,12 +15,14 @@ class User(Base, TimestampMixin):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True, unique=True)
-    phone: Mapped[str] = mapped_column(String(50), nullable=False, index=True, unique=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str] = mapped_column(String(255, collation="NOCASE"), nullable=False, index=True, unique=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True, unique=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[str] = mapped_column(String(50), default=UserRole.USER.value, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     reservations = relationship("Reservation", back_populates="user")
     sessions = relationship("Session", back_populates="user")

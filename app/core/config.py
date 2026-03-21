@@ -3,12 +3,25 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Project API"
+    app_name: str = "OYNA Backend"
     app_version: str = "0.1.0"
+    app_env: str = "development"
     database_url: str
     jwt_secret_key: str = Field(validation_alias=AliasChoices("JWT_SECRET_KEY", "SECRET_KEY"))
+    jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-    model_config = SettingsConfigDict(env_file="/Users/meirbektokabaev/IdeaProjects/OYNA/.env", extra="ignore")
+    refresh_token_expire_days: int = 30
+    api_prefix: str = "/api/v1"
+    debug: bool = False
+    sqlalchemy_echo: bool = False
+    log_level: str = "INFO"
+    auth_password_min_len: int = 10
+    auth_password_max_len: int = 128
+    auth_require_email_verification: bool = False
+    auth_anti_enumeration: bool = False
+    auth_password_hash_scheme: str = "bcrypt_sha256"
+    auth_bcrypt_rounds: int = 12
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

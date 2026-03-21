@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import require_roles
+from app.core.constants import UserRole
 from app.core.db import get_db
 from app.schemas.branch import BranchCreate, BranchRead
 from app.services.branch import create_branch, list_branches
-
 
 router = APIRouter()
 
@@ -15,5 +16,9 @@ def get_branches(db: Session = Depends(get_db)) -> list[BranchRead]:
 
 
 @router.post("", response_model=BranchRead)
-def post_branch(payload: BranchCreate, db: Session = Depends(get_db)) -> BranchRead:
+def post_branch(
+    payload: BranchCreate,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles(UserRole.CLUB_ADMIN, UserRole.OWNER, UserRole.PLATFORM_ADMIN)),
+) -> BranchRead:
     return create_branch(db, payload)

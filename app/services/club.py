@@ -1,3 +1,5 @@
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.repositories import club as repository
@@ -9,4 +11,8 @@ def list_clubs(db: Session) -> list[ClubRead]:
 
 
 def create_club(db: Session, payload: ClubCreate) -> ClubRead:
-    return repository.create_item(db, payload)
+    try:
+        return repository.create_item(db, payload)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Club already exists") from exc

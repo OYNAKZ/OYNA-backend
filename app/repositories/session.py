@@ -3,8 +3,8 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.session import Session as SessionModel
 from app.core.constants import SessionStatus
+from app.models.session import Session as SessionModel
 from app.schemas.session import SessionCreate
 
 
@@ -15,8 +15,19 @@ class SessionRepository:
     def get_by_id(self, session_id: int) -> SessionModel | None:
         return self.db.get(SessionModel, session_id)
 
+    def get_by_reservation_id(self, reservation_id: int) -> SessionModel | None:
+        stmt = select(SessionModel).where(SessionModel.reservation_id == reservation_id)
+        return self.db.scalar(stmt)
+
     def list_active(self) -> list[SessionModel]:
         stmt = select(SessionModel).where(SessionModel.status == SessionStatus.ACTIVE.value).order_by(SessionModel.id)
+        return list(self.db.scalars(stmt))
+
+    def list_all(self) -> list[SessionModel]:
+        return list(self.db.scalars(select(SessionModel).order_by(SessionModel.id)))
+
+    def list_by_user(self, user_id: int) -> list[SessionModel]:
+        stmt = select(SessionModel).where(SessionModel.user_id == user_id).order_by(SessionModel.id)
         return list(self.db.scalars(stmt))
 
     def create(self, payload: SessionCreate) -> SessionModel:
@@ -36,7 +47,7 @@ class SessionRepository:
 
 
 def list_items(db: Session) -> list[SessionModel]:
-    return list(db.scalars(select(SessionModel).order_by(SessionModel.id)))
+    return SessionRepository(db).list_all()
 
 
 def create_item(db: Session, payload: SessionCreate) -> SessionModel:

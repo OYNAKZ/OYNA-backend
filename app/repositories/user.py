@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.db import SessionLocal
@@ -13,7 +14,7 @@ class UserRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self) -> list [User]:
+    def get_all(self) -> list[User]:
         return list(self.db.scalars(select(User)))
 
     def get_by_id(self, user_id: int) -> User | None:
@@ -39,6 +40,30 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(item)
         return item
+
+    def create_user(
+        self,
+        *,
+        email: str,
+        password_hash: str,
+        full_name: str | None = None,
+        phone: str | None = None,
+        role: str,
+    ) -> User:
+        user = User(
+            email=email,
+            password_hash=password_hash,
+            full_name=full_name,
+            phone=phone,
+            role=role,
+        )
+        self.db.add(user)
+        try:
+            self.db.flush()
+        except IntegrityError:
+            self.db.rollback()
+            raise
+        return user
 
 
 def get_by_email(*args) -> dict[str, str] | None:

@@ -15,8 +15,14 @@ class SessionBase(BaseModel):
     status: str = SessionStatus.ACTIVE.value
 
 
-class SessionCreate(SessionBase):
-    pass
+class SessionCreate(BaseModel):
+    reservation_id: int
+    seat_id: int | None = None
+    user_id: int | None = None
+    started_at: datetime
+    planned_end_at: datetime
+    ended_at: datetime | None = None
+    status: str = SessionStatus.ACTIVE.value
 
 
 class SessionRead(SessionBase):

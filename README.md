@@ -1,69 +1,101 @@
-# OYNA — Club Platform API
+# OYNA Backend
 
-REST API for managing gaming clubs: branches, zones, seats, reservations, sessions, and user auth.
+Backend foundation for the OYNA computer-club booking platform.
 
-## Tech Stack
+## Stack
 
-- **FastAPI** — web framework
-- **SQLAlchemy 2** — ORM
-- **Alembic** — migrations
-- **PostgreSQL 16** — database
-- **python-jose** — JWT tokens
-- **passlib[bcrypt]** — password hashing
+- FastAPI
+- SQLAlchemy 2
+- Alembic
+- PostgreSQL 16
+- Pydantic Settings
+- Pytest
+- Ruff
 
-## Prerequisites
+## Project Run
 
-- Python 3.10+
-- Docker & Docker Compose
+### 1. Create `.env`
 
-## Setup
+Copy `.env.example` to `.env`.
 
-### 1. Start the database
+Required environment variables:
 
-```bash
-docker-compose up -d
-```
+- `APP_NAME`
+- `APP_ENV`
+- `DEBUG`
+- `API_PREFIX`
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `JWT_ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `REFRESH_TOKEN_EXPIRE_DAYS`
+- `LOG_LEVEL`
 
-This starts PostgreSQL on `localhost:5433`.
-
-### 2. Create `.env`
+Example local PostgreSQL URL:
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5433/club_platform
-JWT_SECRET_KEY=your-secret-key-here
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/oyna
 ```
 
-### 3. Install dependencies
+### 2. Install dependencies
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Run migrations
+### 3. Run database
+
+```bash
+docker compose up -d db
+```
+
+### 4. Apply migrations
 
 ```bash
 alembic upgrade head
 ```
 
-### 5. Start the server
+### 5. Start backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-API available at `http://localhost:8000`. Docs at `http://localhost:8000/docs`.
+## Health Endpoints
 
-## Auth Endpoints
+- `GET /health`
+- `GET /api/v1/health`
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login, returns JWT token |
+## Docker
 
-## Running Tests
+Start backend and PostgreSQL together:
+
+```bash
+docker compose up --build
+```
+
+Backend will be available at `http://localhost:8000`.
+
+## Tests
+
+Run all tests:
 
 ```bash
 pytest app/tests
 ```
+
+## Quality Checks
+
+```bash
+ruff check .
+ruff format --check .
+pytest app/tests
+```
+
+## Notes
+
+- Settings are loaded from `.env`.
+- The app fails on startup if required settings such as `DATABASE_URL` or `JWT_SECRET_KEY` are missing.
+- Database schema changes must go through Alembic migrations.

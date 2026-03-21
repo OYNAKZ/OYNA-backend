@@ -3,12 +3,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.constants import UserRole
 from app.core.db import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
 from app.repositories.user import UserRepository
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_prefix}/auth/login")
 
 
 def get_current_user(
@@ -33,3 +35,17 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+def require_roles(*roles: UserRole | str):
+    allowed_roles = {role.value if isinstance(role, UserRole) else role for role in roles}
+
+    def dependency(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return current_user
+
+    return dependency
