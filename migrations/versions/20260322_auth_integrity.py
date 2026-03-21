@@ -1,6 +1,6 @@
 """harden user auth and integrity
 
-Revision ID: 20260322_harden_user_auth_and_integrity
+Revision ID: 20260322_auth_integrity
 Revises: d3106be2bdb8
 Create Date: 2026-03-22 02:20:00
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-revision = "20260322_harden_user_auth_and_integrity"
+revision = "20260322_auth_integrity"
 down_revision = "d3106be2bdb8"
 branch_labels = None
 depends_on = None
