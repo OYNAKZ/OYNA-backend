@@ -13,3 +13,4 @@ class Club(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     branches = relationship("Branch", back_populates="club")
+    users = relationship("User", back_populates="club", passive_deletes=True)

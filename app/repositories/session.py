@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date, datetime, time, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,6 +21,13 @@ class SessionRepository:
         stmt = select(SessionModel).where(SessionModel.reservation_id == reservation_id)
         return self.db.scalar(stmt)
 
+    def get_active_by_reservation_id(self, reservation_id: int) -> SessionModel | None:
+        stmt = select(SessionModel).where(
+            SessionModel.reservation_id == reservation_id,
+            SessionModel.status == SessionStatus.ACTIVE.value,
+        )
+        return self.db.scalar(stmt)
+
     def list_active(self) -> list[SessionModel]:
         stmt = select(SessionModel).where(SessionModel.status == SessionStatus.ACTIVE.value).order_by(SessionModel.id)
         return list(self.db.scalars(stmt))
@@ -29,6 +38,18 @@ class SessionRepository:
     def list_by_user(self, user_id: int) -> list[SessionModel]:
         stmt = select(SessionModel).where(SessionModel.user_id == user_id).order_by(SessionModel.id)
         return list(self.db.scalars(stmt))
+
+    def list_booked_intervals_for_day(self, *, seat_id: int, target_date: date) -> list[tuple[datetime, datetime]]:
+        day_start = datetime.combine(target_date, time.min, tzinfo=timezone.utc)
+        day_end = datetime.combine(target_date, time.max, tzinfo=timezone.utc)
+        stmt = select(SessionModel.started_at, SessionModel.planned_end_at, SessionModel.ended_at).where(
+            SessionModel.seat_id == seat_id,
+            SessionModel.status != SessionStatus.CANCELLED.value,
+            SessionModel.started_at < day_end,
+            SessionModel.planned_end_at > day_start,
+        )
+        rows = self.db.execute(stmt).all()
+        return [(started_at, ended_at or planned_end_at) for started_at, planned_end_at, ended_at in rows]
 
     def create(self, payload: SessionCreate) -> SessionModel:
         item = SessionModel(**payload.model_dump())

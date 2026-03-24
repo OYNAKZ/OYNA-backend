@@ -35,3 +35,16 @@ class BranchRead(BranchBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class BranchSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    club_id: int
+    name: str
+    address: str
+    city: str
+    open_time: time
+    close_time: time
+    is_active: bool

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import UserRole
@@ -16,6 +16,7 @@ class User(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True, index=True)
     email: Mapped[str] = mapped_column(String(255, collation="NOCASE"), nullable=False, index=True, unique=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True, unique=True)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
@@ -26,3 +27,4 @@ class User(Base, TimestampMixin):
 
     reservations = relationship("Reservation", back_populates="user")
     sessions = relationship("Session", back_populates="user")
+    club = relationship("Club", back_populates="users")

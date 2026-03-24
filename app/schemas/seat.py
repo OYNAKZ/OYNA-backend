@@ -1,4 +1,9 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
+
+from app.schemas.branch import BranchSummary
+from app.schemas.zone import ZoneSummary
 
 
 class SeatBase(BaseModel):
@@ -29,3 +34,30 @@ class SeatRead(SeatBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class SeatSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    zone_id: int
+    code: str
+    seat_type: str
+    is_active: bool
+    is_maintenance: bool
+    x_position: float | None
+    y_position: float | None
+    zone: ZoneSummary
+    branch: BranchSummary
+
+
+class SeatAvailabilitySlot(BaseModel):
+    start: datetime
+    end: datetime
+    status: str
+
+
+class SeatAvailabilityRead(BaseModel):
+    seat_id: int
+    date: str
+    slots: list[SeatAvailabilitySlot]

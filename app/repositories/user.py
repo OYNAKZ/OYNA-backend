@@ -31,6 +31,7 @@ class UserRepository:
     def create(self, payload: UserCreate, password_hash: str) -> User:
         item = User(
             full_name=payload.full_name,
+            club_id=payload.club_id,
             email=str(payload.email),
             phone=payload.phone,
             password_hash=password_hash,
@@ -48,6 +49,7 @@ class UserRepository:
         password_hash: str,
         full_name: str | None = None,
         phone: str | None = None,
+        club_id: int | None = None,
         role: str,
     ) -> User:
         user = User(
@@ -55,6 +57,7 @@ class UserRepository:
             password_hash=password_hash,
             full_name=full_name,
             phone=phone,
+            club_id=club_id,
             role=role,
         )
         self.db.add(user)

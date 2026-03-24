@@ -20,3 +20,7 @@ class Seat(Base, TimestampMixin):
     zone = relationship("Zone", back_populates="seats")
     reservations = relationship("Reservation", back_populates="seat")
     sessions = relationship("Session", back_populates="seat")
+
+    @property
+    def branch(self):
+        return self.zone.branch if self.zone is not None else None

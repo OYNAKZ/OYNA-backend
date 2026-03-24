@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.core.constants import ReservationStatus
+from app.schemas.seat import SeatSummary
 
 
 class ReservationBase(BaseModel):
@@ -29,3 +30,7 @@ class ReservationRead(ReservationBase):
 
     id: int
     user_id: int
+
+
+class ReservationDetailRead(ReservationRead):
+    seat: SeatSummary

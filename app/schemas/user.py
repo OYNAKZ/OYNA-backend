@@ -5,6 +5,7 @@ from app.core.constants import UserRole
 
 class UserCreate(BaseModel):
     full_name: str | None = None
+    club_id: int | None = None
     email: EmailStr
     phone: str | None = None
     password: str
@@ -16,6 +17,7 @@ class UserRead(BaseModel):
 
     id: int
     full_name: str | None
+    club_id: int | None
     email: EmailStr
     phone: str | None
     role: str

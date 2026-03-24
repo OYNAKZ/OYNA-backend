@@ -37,10 +37,12 @@ def create_user_with_token(
     role: str = UserRole.USER.value,
     email: str,
     full_name: str = "Test User",
+    club_id: int | None = None,
 ) -> tuple[User, dict[str, str]]:
     with SessionLocal() as db:
         user = User(
             full_name=full_name,
+            club_id=club_id,
             email=email,
             phone=None,
             password_hash=hash_password("test-password-123"),
