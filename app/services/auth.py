@@ -77,7 +77,13 @@ def register_user(payload: UserCreate) -> UserRead:
         return UserRead.model_validate(user)
 
 
-def register_user_account(*, email: str, password: str, full_name: str | None = None) -> RegisterResponse:
+def register_user_account(
+    *,
+    email: str,
+    password: str,
+    full_name: str | None = None,
+    phone: str | None = None,
+) -> RegisterResponse:
     email_normalized = normalize_email(email)
     validate_password_policy(password)
     password_hash = hash_password(password)
@@ -89,6 +95,7 @@ def register_user_account(*, email: str, password: str, full_name: str | None = 
                 email=email_normalized,
                 password_hash=password_hash,
                 full_name=full_name,
+                phone=phone,
                 role=UserRole.USER.value,
             )
             db.commit()
@@ -105,6 +112,8 @@ def register_user_account(*, email: str, password: str, full_name: str | None = 
                         created_at=datetime.now(timezone.utc),
                     ),
                     verification_required=settings.auth_require_email_verification,
+                    email=email_normalized,
+                    full_name=full_name,
                 )
             raise UserAlreadyExistsError() from exc
 
@@ -117,4 +126,6 @@ def register_user_account(*, email: str, password: str, full_name: str | None = 
     return RegisterResponse(
         user=UserPublic.model_validate(user),
         verification_required=verification_required,
+        email=user.email,
+        full_name=user.full_name,
     )

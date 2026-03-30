@@ -27,6 +27,12 @@ from app.services.policies import (
 )
 
 
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def _reservation_stmt():
     return (
         select(Reservation)
@@ -142,11 +148,12 @@ def check_in_reservation(db: Session, reservation_id: int, current_user: User) -
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation already converted to session")
     if reservation.status == ReservationStatus.CANCELLED.value:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation is cancelled")
-    if reservation.expires_at is not None and reservation.expires_at <= now:
+    expires_at = _as_utc(reservation.expires_at) if reservation.expires_at is not None else None
+    if expires_at is not None and expires_at <= now:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation is expired")
 
-    window_start = reservation.start_at - timedelta(minutes=30)
-    window_end = reservation.end_at
+    window_start = _as_utc(reservation.start_at) - timedelta(minutes=30)
+    window_end = _as_utc(reservation.end_at)
     if now < window_start or now > window_end:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reservation is outside check-in window")
     if SessionRepository(db).get_by_reservation_id(reservation.id) is not None:

@@ -1,4 +1,6 @@
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from sqlalchemy import text
@@ -11,12 +13,9 @@ from app.core.logging import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name, version=settings.app_version)
-app.include_router(api_router)
 
-
-@app.on_event("startup")
-def on_startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     logger.info("Starting %s in %s mode", settings.app_name, settings.app_env)
     try:
         with SessionLocal() as db:
@@ -24,6 +23,11 @@ def on_startup() -> None:
         logger.info("Database connectivity check passed")
     except Exception:
         logger.exception("Database connectivity check failed during startup")
+    yield
+
+
+app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+app.include_router(api_router)
 
 
 @app.get("/health", tags=["health"])

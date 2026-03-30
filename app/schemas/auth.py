@@ -12,6 +12,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr = Field(..., examples=["user@example.com"])
     password: str = Field(..., min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
 
 
 class UserPublic(BaseModel):
@@ -28,6 +29,8 @@ class UserPublic(BaseModel):
 class RegisterResponse(BaseModel):
     user: UserPublic
     verification_required: bool = False
+    email: EmailStr
+    full_name: str | None = None
 
 
 class TokenResponse(BaseModel):
