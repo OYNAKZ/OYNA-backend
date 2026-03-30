@@ -106,6 +106,10 @@ ruff format --check .
 DATABASE_URL=sqlite:///./ci-test.db JWT_SECRET_KEY=test-secret pytest app/tests
 ```
 
+## API Documentation
+
+Full endpoint documentation with request/response examples is available in [docs/API.md](/Users/meirbektokabaev/IdeaProjects/OYNA/docs/API.md).
+
 ## Notes
 
 - Settings are loaded from `.env`.

@@ -11,4 +11,4 @@ bcrypt==4.3.0
 pytest==8.4.1
 httpx==0.28.1
 ruff==0.12.10
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.9 #DONT REMOVE THIS (some code uses this version of psycopg)

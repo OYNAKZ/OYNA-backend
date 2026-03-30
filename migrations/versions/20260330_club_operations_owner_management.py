@@ -21,7 +21,7 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("operational_status", sa.String(length=50), nullable=True))
         batch_op.create_index(batch_op.f("ix_seats_operational_status"), ["operational_status"], unique=False)
 
-    op.execute("UPDATE seats SET operational_status = 'maintenance' WHERE is_maintenance = 1")
+    op.execute("UPDATE seats SET operational_status = 'maintenance' WHERE is_maintenance IS TRUE")
     op.execute("UPDATE seats SET operational_status = 'available' WHERE operational_status IS NULL")
 
     with op.batch_alter_table("seats") as batch_op:
