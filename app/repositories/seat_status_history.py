@@ -12,9 +12,7 @@ class SeatStatusHistoryRepository:
 
     def list_for_seat(self, seat_id: int) -> list[SeatStatusHistory]:
         stmt = (
-            select(SeatStatusHistory)
-            .where(SeatStatusHistory.seat_id == seat_id)
-            .order_by(SeatStatusHistory.id.desc())
+            select(SeatStatusHistory).where(SeatStatusHistory.seat_id == seat_id).order_by(SeatStatusHistory.id.desc())
         )
         return list(self.db.scalars(stmt))
 

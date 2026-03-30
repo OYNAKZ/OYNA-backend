@@ -207,11 +207,7 @@ def owner_analytics(
             OwnerBranchLoadRead(
                 branch=branch_seats[0].branch,
                 occupancy_rate=(
-                    sum(
-                        1
-                        for seat in branch_seats
-                        if seat.operational_status == SeatOperationalStatus.OCCUPIED.value
-                    )
+                    sum(1 for seat in branch_seats if seat.operational_status == SeatOperationalStatus.OCCUPIED.value)
                     / len(branch_seats)
                 ),
             )

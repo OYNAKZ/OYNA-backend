@@ -47,9 +47,14 @@ def create_reservation(db: Session, payload: ReservationCreate, current_user: Us
     seat = db.get(Seat, payload.seat_id)
     if seat is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Seat not found")
-    if (not seat.is_active) or seat.is_maintenance or seat.operational_status in (
-        SeatOperationalStatus.MAINTENANCE.value,
-        SeatOperationalStatus.OFFLINE.value,
+    if (
+        (not seat.is_active)
+        or seat.is_maintenance
+        or seat.operational_status
+        in (
+            SeatOperationalStatus.MAINTENANCE.value,
+            SeatOperationalStatus.OFFLINE.value,
+        )
     ):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Seat is not available for reservation")
 

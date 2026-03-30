@@ -97,9 +97,9 @@ def list_operational_reservations(
 
     count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
     total = db.scalar(count_stmt) or 0
-    rows = db.scalars(
-        stmt.order_by(Reservation.start_at).offset((page - 1) * page_size).limit(page_size)
-    ).unique().all()
+    rows = (
+        db.scalars(stmt.order_by(Reservation.start_at).offset((page - 1) * page_size).limit(page_size)).unique().all()
+    )
     return PaginatedResponse[ReservationOperationsRead](items=rows, total=total, page=page, page_size=page_size)
 
 
@@ -120,9 +120,11 @@ def list_operational_sessions(
         stmt = stmt.where(Branch.id == branch_id)
 
     total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
-    rows = db.scalars(
-        stmt.order_by(SessionModel.started_at.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).unique().all()
+    rows = (
+        db.scalars(stmt.order_by(SessionModel.started_at.desc()).offset((page - 1) * page_size).limit(page_size))
+        .unique()
+        .all()
+    )
     return PaginatedResponse[SessionOperationsRead](items=rows, total=total, page=page, page_size=page_size)
 
 
@@ -264,8 +266,7 @@ def get_seat_status_history(db: Session, seat_id: int, current_user: User) -> li
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Seat not found")
     ensure_can_operate_seat(db, current_user, seat)
     return [
-        SeatStatusHistoryRead.model_validate(item)
-        for item in SeatStatusHistoryRepository(db).list_for_seat(seat_id)
+        SeatStatusHistoryRead.model_validate(item) for item in SeatStatusHistoryRepository(db).list_for_seat(seat_id)
     ]
 
 
@@ -281,24 +282,34 @@ def get_live_club_summary(db: Session, current_user: User, branch_id: int | None
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club scope not found")
 
     seat_ids = [seat.id for seat in seats]
-    active_reservations = db.scalar(
-        select(func.count()).select_from(Reservation).where(
-            Reservation.seat_id.in_(seat_ids),
-            Reservation.status.in_(
-                [
-                    ReservationStatus.CONFIRMED.value,
-                    ReservationStatus.CHECKED_IN.value,
-                    ReservationStatus.SESSION_STARTED.value,
-                ]
-            ),
+    active_reservations = (
+        db.scalar(
+            select(func.count())
+            .select_from(Reservation)
+            .where(
+                Reservation.seat_id.in_(seat_ids),
+                Reservation.status.in_(
+                    [
+                        ReservationStatus.CONFIRMED.value,
+                        ReservationStatus.CHECKED_IN.value,
+                        ReservationStatus.SESSION_STARTED.value,
+                    ]
+                ),
+            )
         )
-    ) or 0
-    active_sessions = db.scalar(
-        select(func.count()).select_from(SessionModel).where(
-            SessionModel.seat_id.in_(seat_ids),
-            SessionModel.status == SessionStatus.ACTIVE.value,
+        or 0
+    )
+    active_sessions = (
+        db.scalar(
+            select(func.count())
+            .select_from(SessionModel)
+            .where(
+                SessionModel.seat_id.in_(seat_ids),
+                SessionModel.status == SessionStatus.ACTIVE.value,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     zone_map: dict[int, ClubZoneLoadRead] = {}
     for seat in seats:
