@@ -3,13 +3,14 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.constants import SessionStatus, STAFF_ROLES, ReservationStatus, UserRole
+from app.core.constants import STAFF_ROLES, ReservationStatus, SeatOperationalStatus, SessionStatus, UserRole
 from app.models.seat import Seat
 from app.models.user import User
 from app.repositories import reservation as repository
 from app.repositories.reservation import ReservationRepository
 from app.repositories.session import SessionRepository
 from app.schemas.reservation import ReservationCreate, ReservationDetailRead, ReservationRead
+from app.services.policies import ensure_can_operate_reservation, owner_club_ids
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -20,8 +21,14 @@ def _as_utc(value: datetime) -> datetime:
 
 def list_reservations(db: Session, current_user: User) -> list[ReservationRead]:
     repo = ReservationRepository(db)
-    if current_user.role in STAFF_ROLES:
+    if current_user.role == UserRole.PLATFORM_ADMIN.value:
         return repo.list_all()
+    if current_user.role == UserRole.OWNER.value:
+        club_ids = owner_club_ids(db, current_user)
+        return [item for item in repo.list_all() if repo.get_club_id(item.id) in club_ids]
+    if current_user.role == UserRole.CLUB_ADMIN.value:
+        club_id = current_user.club_id
+        return [item for item in repo.list_all() if repo.get_club_id(item.id) == club_id]
     return repo.list_by_user(current_user.id)
 
 
@@ -40,7 +47,10 @@ def create_reservation(db: Session, payload: ReservationCreate, current_user: Us
     seat = db.get(Seat, payload.seat_id)
     if seat is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Seat not found")
-    if not seat.is_active or seat.is_maintenance:
+    if (not seat.is_active) or seat.is_maintenance or seat.operational_status in (
+        SeatOperationalStatus.MAINTENANCE.value,
+        SeatOperationalStatus.OFFLINE.value,
+    ):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Seat is not available for reservation")
 
     repo = ReservationRepository(db)
@@ -56,7 +66,12 @@ def create_reservation(db: Session, payload: ReservationCreate, current_user: Us
         expires_at=payload.expires_at,
         cancelled_at=payload.cancelled_at,
     )
-    return repository.create_item(db, create_payload)
+    reservation = repository.create_item(db, create_payload)
+    if seat.operational_status == SeatOperationalStatus.AVAILABLE.value:
+        seat.operational_status = SeatOperationalStatus.RESERVED.value
+        db.add(seat)
+        db.commit()
+    return reservation
 
 
 def _ensure_reservation_access(
@@ -68,16 +83,16 @@ def _ensure_reservation_access(
     if reservation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
 
-    if current_user.role == UserRole.USER.value and reservation.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Reservation is not accessible")
-
-    if current_user.role == UserRole.CLUB_ADMIN.value:
-        if current_user.club_id is None:
+    if current_user.role == UserRole.USER.value:
+        if reservation.user_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Reservation is not accessible")
-        reservation_club_id = repo.get_club_id(reservation_id)
-        if reservation_club_id != current_user.club_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Reservation is not accessible")
+        return reservation.id
 
+    if current_user.role in STAFF_ROLES:
+        reservation_with_scope = repo.get_by_id_with_location(reservation_id)
+        if reservation_with_scope is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+        ensure_can_operate_reservation(db=repo.db, user=current_user, reservation=reservation_with_scope)
     return reservation.id
 
 
@@ -110,10 +125,16 @@ def cancel_reservation(db: Session, reservation_id: int, current_user: User) -> 
     if active_session is not None and active_session.status == SessionStatus.ACTIVE.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Active session prevents cancellation")
 
-    return ReservationRead.model_validate(
-        repo.update(
-            reservation,
-            status=ReservationStatus.CANCELLED.value,
-            cancelled_at=now,
-        )
+    updated = repo.update(
+        reservation,
+        status=ReservationStatus.CANCELLED.value,
+        cancelled_at=now,
     )
+    seat = reservation.seat
+    if seat is not None and seat.operational_status == SeatOperationalStatus.RESERVED.value:
+        seat.operational_status = SeatOperationalStatus.AVAILABLE.value
+        seat.is_active = True
+        seat.is_maintenance = False
+        db.add(seat)
+        db.commit()
+    return ReservationRead.model_validate(updated)

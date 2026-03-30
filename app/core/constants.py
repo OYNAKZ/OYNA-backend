@@ -19,6 +19,7 @@ class ReservationStatus(str, Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     CHECKED_IN = "checked_in"
+    SESSION_STARTED = "session_started"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
     NO_SHOW = "no_show"
@@ -27,5 +28,19 @@ class ReservationStatus(str, Enum):
 class SessionStatus(str, Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
+    FINISHED = "finished"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
+
+
+class SeatOperationalStatus(str, Enum):
+    AVAILABLE = "available"
+    RESERVED = "reserved"
+    OCCUPIED = "occupied"
+    MAINTENANCE = "maintenance"
+    OFFLINE = "offline"
+
+
+class ScopeRole(str, Enum):
+    OWNER = "owner"
+    CLUB_ADMIN = "club_admin"

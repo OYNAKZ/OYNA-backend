@@ -1,6 +1,7 @@
 from sqlalchemy import Boolean, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.constants import SeatOperationalStatus
 from app.models.base import Base, TimestampMixin
 
 
@@ -14,12 +15,16 @@ class Seat(Base, TimestampMixin):
     seat_type: Mapped[str] = mapped_column(String(100), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_maintenance: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    operational_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default=SeatOperationalStatus.AVAILABLE.value, index=True
+    )
     x_position: Mapped[float | None] = mapped_column(Float, nullable=True)
     y_position: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     zone = relationship("Zone", back_populates="seats")
     reservations = relationship("Reservation", back_populates="seat")
     sessions = relationship("Session", back_populates="seat")
+    status_history = relationship("SeatStatusHistory", back_populates="seat", passive_deletes=True)
 
     @property
     def branch(self):

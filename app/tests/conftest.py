@@ -3,10 +3,10 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import delete, text
 
-from app.core.constants import UserRole
+from app.core.constants import ScopeRole, UserRole
 from app.core.db import SessionLocal, engine
 from app.core.security import create_access_token, hash_password
-from app.models import Base, Branch, Club, Reservation, Seat, Session, User, Zone
+from app.models import Base, Branch, Club, Reservation, Seat, SeatStatusHistory, Session, StaffAssignment, User, Zone
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -22,6 +22,8 @@ def prepare_schema() -> None:
 @pytest.fixture(autouse=True)
 def clean_db() -> None:
     with SessionLocal() as db:
+        db.execute(delete(SeatStatusHistory))
+        db.execute(delete(StaffAssignment))
         db.execute(delete(Session))
         db.execute(delete(Reservation))
         db.execute(delete(Seat))
@@ -52,6 +54,17 @@ def create_user_with_token(
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        if role in (UserRole.OWNER.value, UserRole.CLUB_ADMIN.value) and club_id is not None:
+            assignment = StaffAssignment(
+                user_id=user.id,
+                club_id=club_id,
+                branch_id=None,
+                role_in_scope=ScopeRole.OWNER.value if role == UserRole.OWNER.value else ScopeRole.CLUB_ADMIN.value,
+                is_active=True,
+            )
+            db.add(assignment)
+            db.commit()
 
         token = create_access_token(subject=str(user.id))
         headers = {"Authorization": f"Bearer {token}"}

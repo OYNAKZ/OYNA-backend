@@ -14,3 +14,4 @@ class Club(Base, TimestampMixin):
 
     branches = relationship("Branch", back_populates="club")
     users = relationship("User", back_populates="club", passive_deletes=True)
+    staff_assignments = relationship("StaffAssignment", back_populates="club", passive_deletes=True)
