@@ -30,6 +30,7 @@ ACTIVE_RESERVATION_STATUSES = (
     ReservationStatus.CREATED.value,
     ReservationStatus.CONFIRMED.value,
     ReservationStatus.CHECKED_IN.value,
+    ReservationStatus.SESSION_STARTED.value,
 )
 
 

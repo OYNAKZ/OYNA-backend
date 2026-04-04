@@ -135,6 +135,7 @@ def test_official_reservation_statuses_are_fixed() -> None:
         "created",
         "confirmed",
         "checked_in",
+        "session_started",
         "cancelled",
         "expired",
         "no_show",

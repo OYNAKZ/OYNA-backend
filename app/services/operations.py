@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.constants import ReservationStatus, SeatOperationalStatus, SessionStatus, UserRole
+from app.core.constants import ACTIVE_RESERVATION_STATUSES, ReservationStatus, SeatOperationalStatus, SessionStatus, UserRole
 from app.models import Branch, Reservation, Seat, User, Zone
 from app.models import Session as SessionModel
 from app.repositories.reservation import ReservationRepository
@@ -295,13 +295,7 @@ def get_live_club_summary(db: Session, current_user: User, branch_id: int | None
             .select_from(Reservation)
             .where(
                 Reservation.seat_id.in_(seat_ids),
-                Reservation.status.in_(
-                    [
-                        ReservationStatus.CONFIRMED.value,
-                        ReservationStatus.CHECKED_IN.value,
-                        ReservationStatus.SESSION_STARTED.value,
-                    ]
-                ),
+                Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
             )
         )
         or 0

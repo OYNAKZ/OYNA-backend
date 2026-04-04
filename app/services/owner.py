@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.constants import ReservationStatus, SeatOperationalStatus, SessionStatus, UserRole
+from app.core.constants import ACTIVE_RESERVATION_STATUSES, ReservationStatus, SeatOperationalStatus, SessionStatus, UserRole
 from app.models import Branch, Club, Reservation, Seat, User, Zone
 from app.models import Session as SessionModel
 from app.repositories.assignment import StaffAssignmentRepository
@@ -51,13 +51,7 @@ def list_owner_clubs(db: Session, current_user: User) -> list[OwnerClubOverviewR
                 db.scalars(
                     select(Reservation).where(
                         Reservation.seat_id.in_(seat_ids),
-                        Reservation.status.in_(
-                            [
-                                ReservationStatus.CONFIRMED.value,
-                                ReservationStatus.CHECKED_IN.value,
-                                ReservationStatus.SESSION_STARTED.value,
-                            ]
-                        ),
+                        Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
                     )
                 )
             )
@@ -148,13 +142,7 @@ def owner_analytics(
             db.scalars(
                 select(Reservation).where(
                     Reservation.seat_id.in_(seat_ids),
-                    Reservation.status.in_(
-                        [
-                            ReservationStatus.CONFIRMED.value,
-                            ReservationStatus.CHECKED_IN.value,
-                            ReservationStatus.SESSION_STARTED.value,
-                        ]
-                    ),
+                    Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
                 )
             )
         )
