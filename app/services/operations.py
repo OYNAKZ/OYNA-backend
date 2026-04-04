@@ -6,7 +6,13 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.constants import ACTIVE_RESERVATION_STATUSES, ReservationStatus, SeatOperationalStatus, SessionStatus, UserRole
+from app.core.constants import (
+    ACTIVE_RESERVATION_STATUSES,
+    ReservationStatus,
+    SeatOperationalStatus,
+    SessionStatus,
+    UserRole,
+)
 from app.models import Branch, Reservation, Seat, User, Zone
 from app.models import Session as SessionModel
 from app.repositories.reservation import ReservationRepository
