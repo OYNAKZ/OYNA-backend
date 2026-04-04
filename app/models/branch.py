@@ -22,3 +22,4 @@ class Branch(Base, TimestampMixin):
 
     club = relationship("Club", back_populates="branches")
     zones = relationship("Zone", back_populates="branch")
+    staff_assignments = relationship("StaffAssignment", back_populates="branch", passive_deletes=True)

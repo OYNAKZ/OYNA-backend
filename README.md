@@ -18,7 +18,10 @@ Backend foundation for the OYNA computer-club booking platform.
 
 Copy `.env.example` to `.env`.
 
-Required environment variables:
+The example file is preconfigured for Docker Compose, where PostgreSQL is reachable as `db`.
+If you run the app directly on your machine, change `DATABASE_URL` to use `localhost`.
+
+Core settings:
 
 - `APP_NAME`
 - `APP_ENV`
@@ -30,6 +33,9 @@ Required environment variables:
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
 - `REFRESH_TOKEN_EXPIRE_DAYS`
 - `LOG_LEVEL`
+- `AUTH_PASSWORD_MIN_LEN`
+- `AUTH_PASSWORD_MAX_LEN`
+- `AUTH_PASSWORD_HASH_SCHEME`
 
 Example local PostgreSQL URL:
 
@@ -41,8 +47,14 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/oyna
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+On Windows PowerShell, use:
+
+```powershell
+.venv\Scripts\Activate.ps1
 ```
 
 ### 3. Run database
@@ -83,7 +95,7 @@ Backend will be available at `http://localhost:8000`.
 Run all tests:
 
 ```bash
-pytest app/tests
+DATABASE_URL=sqlite:///./ci-test.db JWT_SECRET_KEY=test-secret pytest app/tests
 ```
 
 ## Quality Checks
@@ -91,11 +103,17 @@ pytest app/tests
 ```bash
 ruff check .
 ruff format --check .
-pytest app/tests
+DATABASE_URL=sqlite:///./ci-test.db JWT_SECRET_KEY=test-secret pytest app/tests
 ```
+
+## API Documentation
+
+Full endpoint documentation with request/response examples is available in [docs/API.md](/Users/meirbektokabaev/IdeaProjects/OYNA/docs/API.md).
 
 ## Notes
 
 - Settings are loaded from `.env`.
 - The app fails on startup if required settings such as `DATABASE_URL` or `JWT_SECRET_KEY` are missing.
 - Database schema changes must go through Alembic migrations.
+- `GET /health` and `GET /api/v1/health` are both available.
+- Protected resources include `/api/v1/users`, `/api/v1/clubs`, `/api/v1/branches`, `/api/v1/zones`, `/api/v1/seats`, `/api/v1/reservations`, `/api/v1/sessions`, `/api/v1/operations`, and `/api/v1/owner`.

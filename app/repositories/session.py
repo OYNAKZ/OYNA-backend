@@ -28,6 +28,13 @@ class SessionRepository:
         )
         return self.db.scalar(stmt)
 
+    def get_active_by_seat_id(self, seat_id: int) -> SessionModel | None:
+        stmt = select(SessionModel).where(
+            SessionModel.seat_id == seat_id,
+            SessionModel.status == SessionStatus.ACTIVE.value,
+        )
+        return self.db.scalar(stmt)
+
     def list_active(self) -> list[SessionModel]:
         stmt = select(SessionModel).where(SessionModel.status == SessionStatus.ACTIVE.value).order_by(SessionModel.id)
         return list(self.db.scalars(stmt))

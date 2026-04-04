@@ -4,10 +4,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.constants import SeatOperationalStatus
 from app.models.zone import Zone
+from app.repositories import seat as repository
 from app.repositories.reservation import ReservationRepository
 from app.repositories.session import SessionRepository
-from app.repositories import seat as repository
 from app.schemas.seat import SeatAvailabilityRead, SeatAvailabilitySlot, SeatCreate, SeatRead
 
 
@@ -25,22 +26,40 @@ def create_seat(db: Session, payload: SeatCreate) -> SeatRead:
     if db.get(Zone, payload.zone_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone not found")
     try:
-        return repository.create_item(db, payload)
+        seat = repository.create_item(db, payload)
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Seat code already exists in this zone",
         ) from exc
+    seat.operational_status = (
+        SeatOperationalStatus.MAINTENANCE.value if seat.is_maintenance else SeatOperationalStatus.AVAILABLE.value
+    )
+    db.add(seat)
+    db.commit()
+    db.refresh(seat)
+    return seat
 
 
 def get_seat_availability(db: Session, seat_id: int, target_date: date) -> SeatAvailabilityRead:
     seat = repository.SeatRepository(db).get_by_id(seat_id)
     if seat is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Seat not found")
-
     day_start = datetime.combine(target_date, time.min, tzinfo=timezone.utc)
     day_end = datetime.combine(target_date, time.max, tzinfo=timezone.utc)
+    if seat.operational_status in (SeatOperationalStatus.MAINTENANCE.value, SeatOperationalStatus.OFFLINE.value):
+        return SeatAvailabilityRead(
+            seat_id=seat_id,
+            date=target_date.isoformat(),
+            slots=[
+                SeatAvailabilitySlot(
+                    start=day_start,
+                    end=day_end,
+                    status=seat.operational_status,
+                )
+            ],
+        )
 
     intervals = ReservationRepository(db).list_booked_intervals_for_day(seat_id=seat_id, target_date=target_date)
     intervals.extend(SessionRepository(db).list_booked_intervals_for_day(seat_id=seat_id, target_date=target_date))
