@@ -52,7 +52,7 @@ def create_reservation(db: Session, payload: ReservationCreate, current_user: Us
         user_id=user_id,
         start_at=payload.start_at,
         end_at=payload.end_at,
-        status=payload.status or ReservationStatus.CONFIRMED.value,
+        status=payload.status or ReservationStatus.CONFIRMED,
         expires_at=payload.expires_at,
         cancelled_at=payload.cancelled_at,
     )

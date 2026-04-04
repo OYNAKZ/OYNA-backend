@@ -16,12 +16,28 @@ ADMIN_ROLES = (UserRole.OWNER.value, UserRole.PLATFORM_ADMIN.value)
 
 
 class ReservationStatus(str, Enum):
-    PENDING = "pending"
+    CREATED = "created"
     CONFIRMED = "confirmed"
     CHECKED_IN = "checked_in"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
     NO_SHOW = "no_show"
+    COMPLETED = "completed"
+
+
+ACTIVE_RESERVATION_STATUSES = (
+    ReservationStatus.CREATED.value,
+    ReservationStatus.CONFIRMED.value,
+    ReservationStatus.CHECKED_IN.value,
+)
+
+
+TERMINAL_RESERVATION_STATUSES = (
+    ReservationStatus.CANCELLED.value,
+    ReservationStatus.EXPIRED.value,
+    ReservationStatus.NO_SHOW.value,
+    ReservationStatus.COMPLETED.value,
+)
 
 
 class SessionStatus(str, Enum):

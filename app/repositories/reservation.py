@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timezone
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.constants import ReservationStatus
+from app.core.constants import ACTIVE_RESERVATION_STATUSES
 from app.models.branch import Branch
 from app.models.reservation import Reservation
 from app.models.seat import Seat
@@ -51,14 +51,9 @@ class ReservationRepository:
     def list_booked_intervals_for_day(self, *, seat_id: int, target_date: date) -> list[tuple[datetime, datetime]]:
         day_start = datetime.combine(target_date, time.min, tzinfo=timezone.utc)
         day_end = datetime.combine(target_date, time.max, tzinfo=timezone.utc)
-        active_statuses = (
-            ReservationStatus.PENDING.value,
-            ReservationStatus.CONFIRMED.value,
-            ReservationStatus.CHECKED_IN.value,
-        )
         stmt = select(Reservation.start_at, Reservation.end_at).where(
             Reservation.seat_id == seat_id,
-            Reservation.status.in_(active_statuses),
+            Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
             Reservation.start_at < day_end,
             Reservation.end_at > day_start,
             Reservation.cancelled_at.is_(None),
@@ -66,15 +61,10 @@ class ReservationRepository:
         return list(self.db.execute(stmt).all())
 
     def has_overlap(self, *, seat_id: int, start_at, end_at) -> bool:
-        active_statuses = (
-            ReservationStatus.PENDING.value,
-            ReservationStatus.CONFIRMED.value,
-            ReservationStatus.CHECKED_IN.value,
-        )
         stmt = select(Reservation.id).where(
             and_(
                 Reservation.seat_id == seat_id,
-                Reservation.status.in_(active_statuses),
+                Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
                 Reservation.start_at < end_at,
                 Reservation.end_at > start_at,
                 or_(Reservation.cancelled_at.is_(None), Reservation.cancelled_at > start_at),

@@ -130,6 +130,18 @@ def test_create_reservation() -> None:
     assert response.json()["seat_id"] == structure["seat_id"]
 
 
+def test_official_reservation_statuses_are_fixed() -> None:
+    assert [status.value for status in ReservationStatus] == [
+        "created",
+        "confirmed",
+        "checked_in",
+        "cancelled",
+        "expired",
+        "no_show",
+        "completed",
+    ]
+
+
 def test_get_reservation_detail_owner_can_view_nested_location() -> None:
     user, headers = create_user_with_token(role=UserRole.USER.value, email="owner-view@example.com")
     structure = _seed_club_structure(club_name="Owner View Club")

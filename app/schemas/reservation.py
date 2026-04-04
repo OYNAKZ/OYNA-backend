@@ -10,7 +10,7 @@ class ReservationBase(BaseModel):
     seat_id: int
     start_at: datetime
     end_at: datetime
-    status: str = ReservationStatus.CONFIRMED.value
+    status: ReservationStatus = ReservationStatus.CONFIRMED
     expires_at: datetime | None = None
     cancelled_at: datetime | None = None
 
@@ -20,7 +20,7 @@ class ReservationCreate(BaseModel):
     start_at: datetime
     end_at: datetime
     user_id: int | None = None
-    status: str = ReservationStatus.CONFIRMED.value
+    status: ReservationStatus = ReservationStatus.CONFIRMED
     expires_at: datetime | None = None
     cancelled_at: datetime | None = None
 
