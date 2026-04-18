@@ -31,11 +31,13 @@ class SessionRepository:
         )
         return self.db.scalar(stmt)
 
-    def get_active_by_seat_id(self, seat_id: int) -> SessionModel | None:
+    def get_active_by_seat_id(self, seat_id: int, *, exclude_session_id: int | None = None) -> SessionModel | None:
         stmt = select(SessionModel).where(
             SessionModel.seat_id == seat_id,
             SessionModel.status == SessionStatus.ACTIVE.value,
         )
+        if exclude_session_id is not None:
+            stmt = stmt.where(SessionModel.id != exclude_session_id)
         return self.db.scalar(stmt)
 
     def list_active(self) -> list[SessionModel]:

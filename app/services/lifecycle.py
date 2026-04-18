@@ -131,8 +131,14 @@ def ensure_manual_seat_status_change_allowed(db: Session, seat: Seat, *, new_sta
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Active reservations prevent seat status change")
 
 
-def sync_seat_operational_status(db: Session, seat: Seat, *, exclude_reservation_id: int | None = None) -> None:
-    active_session = SessionRepository(db).get_active_by_seat_id(seat.id)
+def sync_seat_operational_status(
+    db: Session,
+    seat: Seat,
+    *,
+    exclude_reservation_id: int | None = None,
+    exclude_session_id: int | None = None,
+) -> None:
+    active_session = SessionRepository(db).get_active_by_seat_id(seat.id, exclude_session_id=exclude_session_id)
     if active_session is not None:
         seat.operational_status = SeatOperationalStatus.OCCUPIED.value
         seat.is_active = True

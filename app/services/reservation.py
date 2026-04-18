@@ -14,6 +14,7 @@ from app.repositories.session import SessionRepository
 from app.schemas.reservation import ReservationCreate, ReservationDetailRead, ReservationHoldCreate, ReservationRead
 from app.services.availability import check_seat_availability, cleanup_expired_holds, normalize_interval
 from app.services.lifecycle import (
+    as_utc,
     ensure_reservation_can_cancel,
     ensure_reservation_creation_status_allowed,
     sync_seat_operational_status,
@@ -124,8 +125,8 @@ def create_reservation_hold(db: Session, payload: ReservationHoldCreate, current
     if existing is not None:
         if (
             existing.seat_id != payload.seat_id
-            or existing.start_at != start_at
-            or existing.end_at != end_at
+            or as_utc(existing.start_at) != start_at
+            or as_utc(existing.end_at) != end_at
         ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -160,7 +161,11 @@ def create_reservation_hold(db: Session, payload: ReservationHoldCreate, current
         existing = repo.get_by_user_and_idempotency_key(user_id=user_id, idempotency_key=payload.idempotency_key)
         if existing is None:
             raise
-        if existing.seat_id != payload.seat_id or existing.start_at != start_at or existing.end_at != end_at:
+        if (
+            existing.seat_id != payload.seat_id
+            or as_utc(existing.start_at) != start_at
+            or as_utc(existing.end_at) != end_at
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Idempotency key already used for different reservation intent",
@@ -195,7 +200,8 @@ def confirm_reservation_hold_for_payment(db: Session, *, reservation_id: int):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation is not pending payment")
 
     now = datetime.now(timezone.utc)
-    if reservation.expires_at is not None and reservation.expires_at <= now:
+    expires_at = as_utc(reservation.expires_at) if reservation.expires_at is not None else None
+    if expires_at is not None and expires_at <= now:
         repo.update(reservation, status=ReservationStatus.EXPIRED.value)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation hold has expired")
 

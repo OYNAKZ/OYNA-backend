@@ -218,7 +218,12 @@ def finish_session(db: Session, session_id: int, current_user: User) -> SessionO
     session.ended_at = now
     session.reservation.status = ReservationStatus.COMPLETED.value
     seat = session.seat
-    sync_seat_operational_status(db, seat, exclude_reservation_id=session.reservation_id)
+    sync_seat_operational_status(
+        db,
+        seat,
+        exclude_reservation_id=session.reservation_id,
+        exclude_session_id=session.id,
+    )
     db.add_all([session, session.reservation, seat])
     db.commit()
     db.refresh(session)
