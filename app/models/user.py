@@ -27,6 +27,7 @@ class User(Base, TimestampMixin):
 
     reservations = relationship("Reservation", back_populates="user")
     sessions = relationship("Session", back_populates="user")
+    payments = relationship("Payment", back_populates="user", passive_deletes=True)
     club = relationship("Club", back_populates="users")
     staff_assignments = relationship("StaffAssignment", back_populates="user", passive_deletes=True)
     seat_status_changes = relationship("SeatStatusHistory", back_populates="changed_by", passive_deletes=True)

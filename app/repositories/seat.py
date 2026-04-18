@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.branch import Branch
 from app.models.seat import Seat
@@ -16,6 +16,14 @@ class SeatRepository:
     def get_by_id(self, seat_id: int) -> Seat | None:
         return self.db.get(Seat, seat_id)
 
+    def get_by_id_with_location(self, seat_id: int) -> Seat | None:
+        stmt = (
+            select(Seat)
+            .options(joinedload(Seat.zone).joinedload(Zone.branch))
+            .where(Seat.id == seat_id)
+        )
+        return self.db.scalar(stmt)
+
     def list_by_branch(self, branch_id: int) -> list[Seat]:
         stmt = (
             select(Seat)
@@ -25,6 +33,28 @@ class SeatRepository:
             .order_by(Seat.id)
         )
         return list(self.db.scalars(stmt))
+
+    def list_with_location(
+        self,
+        *,
+        club_id: int | None = None,
+        branch_id: int | None = None,
+        zone_id: int | None = None,
+    ) -> list[Seat]:
+        stmt = (
+            select(Seat)
+            .options(joinedload(Seat.zone).joinedload(Zone.branch))
+            .join(Zone, Seat.zone_id == Zone.id)
+            .join(Branch, Zone.branch_id == Branch.id)
+            .order_by(Seat.id)
+        )
+        if club_id is not None:
+            stmt = stmt.where(Branch.club_id == club_id)
+        if branch_id is not None:
+            stmt = stmt.where(Branch.id == branch_id)
+        if zone_id is not None:
+            stmt = stmt.where(Zone.id == zone_id)
+        return list(self.db.scalars(stmt).unique())
 
     def create(self, payload: SeatCreate) -> Seat:
         item = Seat(**payload.model_dump())

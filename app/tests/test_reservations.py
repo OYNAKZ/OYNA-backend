@@ -133,6 +133,7 @@ def test_create_reservation() -> None:
 def test_official_reservation_statuses_are_fixed() -> None:
     assert [status.value for status in ReservationStatus] == [
         "created",
+        "pending_payment",
         "confirmed",
         "checked_in",
         "session_started",

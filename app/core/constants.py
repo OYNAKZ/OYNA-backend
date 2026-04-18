@@ -17,6 +17,7 @@ ADMIN_ROLES = (UserRole.OWNER.value, UserRole.PLATFORM_ADMIN.value)
 
 class ReservationStatus(str, Enum):
     CREATED = "created"
+    PENDING_PAYMENT = "pending_payment"
     CONFIRMED = "confirmed"
     CHECKED_IN = "checked_in"
     SESSION_STARTED = "session_started"
@@ -28,9 +29,16 @@ class ReservationStatus(str, Enum):
 
 ACTIVE_RESERVATION_STATUSES = (
     ReservationStatus.CREATED.value,
+    ReservationStatus.PENDING_PAYMENT.value,
     ReservationStatus.CONFIRMED.value,
     ReservationStatus.CHECKED_IN.value,
     ReservationStatus.SESSION_STARTED.value,
+)
+
+
+PAYMENT_HOLD_RESERVATION_STATUSES = (
+    ReservationStatus.CREATED.value,
+    ReservationStatus.PENDING_PAYMENT.value,
 )
 
 
@@ -61,3 +69,17 @@ class SeatOperationalStatus(str, Enum):
 class ScopeRole(str, Enum):
     OWNER = "owner"
     CLUB_ADMIN = "club_admin"
+
+
+class PaymentStatus(str, Enum):
+    CREATED = "created"
+    PENDING = "pending"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+    PARTIALLY_REFUNDED = "partially_refunded"
+
+
+class PaymentProviderName(str, Enum):
+    FAKE = "fake"

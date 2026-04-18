@@ -26,6 +26,13 @@ from app.schemas.operations import (
     SessionOperationsRead,
 )
 from app.schemas.seat import SeatStatusHistoryRead
+from app.services.lifecycle import (
+    ensure_manual_seat_status_change_allowed,
+    ensure_reservation_can_check_in,
+    ensure_reservation_can_start_session,
+    ensure_session_can_finish,
+    sync_seat_operational_status,
+)
 from app.services.policies import (
     ensure_active_scope_assignment,
     ensure_can_operate_reservation,
@@ -148,22 +155,15 @@ def check_in_reservation(db: Session, reservation_id: int, current_user: User) -
     ensure_can_operate_reservation(db, current_user, reservation)
 
     now = datetime.now(timezone.utc)
-    if reservation.status == ReservationStatus.CHECKED_IN.value:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation already checked in")
-    if reservation.status == ReservationStatus.SESSION_STARTED.value:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation already converted to session")
-    if reservation.status == ReservationStatus.CANCELLED.value:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation is cancelled")
-    expires_at = _as_utc(reservation.expires_at) if reservation.expires_at is not None else None
-    if expires_at is not None and expires_at <= now:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation is expired")
-
     window_start = _as_utc(reservation.start_at) - timedelta(minutes=30)
     window_end = _as_utc(reservation.end_at)
     if now < window_start or now > window_end:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reservation is outside check-in window")
-    if SessionRepository(db).get_by_reservation_id(reservation.id) is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session already exists for reservation")
+    ensure_reservation_can_check_in(
+        reservation,
+        now=now,
+        has_session=SessionRepository(db).get_by_reservation_id(reservation.id) is not None,
+    )
 
     updated = ReservationRepository(db).update(reservation, status=ReservationStatus.CHECKED_IN.value)
     return ReservationOperationsRead.model_validate(updated)
@@ -177,19 +177,14 @@ def start_session_from_reservation(db: Session, reservation_id: int, current_use
     ensure_can_operate_reservation(db, current_user, reservation)
 
     seat = reservation.seat
-    if reservation.status not in (ReservationStatus.CHECKED_IN.value, ReservationStatus.CONFIRMED.value):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Reservation is not eligible for session start",
-        )
-    if seat.operational_status in (SeatOperationalStatus.MAINTENANCE.value, SeatOperationalStatus.OFFLINE.value):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Seat is not available for session start")
-    if SessionRepository(db).get_by_reservation_id(reservation.id) is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session already exists")
-    if SessionRepository(db).get_active_by_seat_id(seat.id) is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Seat already has an active session")
-
     now = datetime.now(timezone.utc)
+    ensure_reservation_can_start_session(
+        reservation,
+        now=now,
+        seat_status=seat.operational_status,
+        has_session=SessionRepository(db).get_by_reservation_id(reservation.id) is not None,
+        has_active_session_for_seat=SessionRepository(db).get_active_by_seat_id(seat.id) is not None,
+    )
     session = SessionModel(
         reservation_id=reservation.id,
         seat_id=reservation.seat_id,
@@ -216,18 +211,15 @@ def finish_session(db: Session, session_id: int, current_user: User) -> SessionO
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     ensure_can_operate_seat(db, current_user, session.seat)
 
-    if session.status != SessionStatus.ACTIVE.value:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session is already finished")
+    ensure_session_can_finish(session.status)
 
     now = datetime.now(timezone.utc)
     session.status = SessionStatus.FINISHED.value
     session.ended_at = now
+    session.reservation.status = ReservationStatus.COMPLETED.value
     seat = session.seat
-    if seat.operational_status == SeatOperationalStatus.OCCUPIED.value:
-        seat.operational_status = SeatOperationalStatus.AVAILABLE.value
-    seat.is_active = seat.operational_status != SeatOperationalStatus.OFFLINE.value
-    seat.is_maintenance = seat.operational_status == SeatOperationalStatus.MAINTENANCE.value
-    db.add_all([session, seat])
+    sync_seat_operational_status(db, seat, exclude_reservation_id=session.reservation_id)
+    db.add_all([session, session.reservation, seat])
     db.commit()
     db.refresh(session)
     return SessionOperationsRead.model_validate(session)
@@ -249,11 +241,7 @@ def update_seat_operational_status(
 
     if new_status not in {item.value for item in SeatOperationalStatus}:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid seat status")
-    active_session = SessionRepository(db).get_active_by_seat_id(seat.id)
-    if new_status == SeatOperationalStatus.AVAILABLE.value and active_session is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Active session prevents seat release")
-    if new_status == SeatOperationalStatus.MAINTENANCE.value and active_session is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Active session prevents maintenance mode")
+    ensure_manual_seat_status_change_allowed(db, seat, new_status=new_status)
 
     previous_status = seat.operational_status
     seat.operational_status = new_status

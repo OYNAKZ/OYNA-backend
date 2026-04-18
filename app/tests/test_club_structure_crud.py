@@ -12,7 +12,6 @@ def test_full_club_structure_crud_flow() -> None:
         role=UserRole.PLATFORM_ADMIN.value,
         email="platform-admin@example.com",
     )
-    _, staff_headers = create_user_with_token(role=UserRole.OWNER.value, email="owner@example.com")
 
     club_response = client.post(
         "/api/v1/clubs",
@@ -21,6 +20,7 @@ def test_full_club_structure_crud_flow() -> None:
     )
     assert club_response.status_code == 200
     club_id = club_response.json()["id"]
+    _, staff_headers = create_user_with_token(role=UserRole.OWNER.value, email="owner@example.com", club_id=club_id)
 
     branch_response = client.post(
         "/api/v1/branches",
@@ -89,7 +89,6 @@ def test_seat_code_must_be_unique_within_zone() -> None:
         role=UserRole.PLATFORM_ADMIN.value,
         email="platform-admin-2@example.com",
     )
-    _, staff_headers = create_user_with_token(role=UserRole.OWNER.value, email="owner-2@example.com")
 
     club_response = client.post(
         "/api/v1/clubs",
@@ -97,6 +96,7 @@ def test_seat_code_must_be_unique_within_zone() -> None:
         headers=platform_admin_headers,
     )
     club_id = club_response.json()["id"]
+    _, staff_headers = create_user_with_token(role=UserRole.OWNER.value, email="owner-2@example.com", club_id=club_id)
 
     branch_response = client.post(
         "/api/v1/branches",

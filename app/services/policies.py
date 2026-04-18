@@ -13,6 +13,20 @@ def _forbidden() -> HTTPException:
     return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient scope")
 
 
+def ensure_self_or_platform_admin(current_user: User, target_user_id: int) -> None:
+    if current_user.role == UserRole.PLATFORM_ADMIN.value:
+        return
+    if current_user.id == target_user_id:
+        return
+    raise _forbidden()
+
+
+def ensure_staff_scope_access(db: Session, user: User) -> None:
+    if user.role == UserRole.USER.value:
+        raise _forbidden()
+    ensure_active_scope_assignment(db, user)
+
+
 def _active_assignments(db: Session, user_id: int, role_in_scope: str) -> list[StaffAssignment]:
     stmt = select(StaffAssignment).where(
         StaffAssignment.user_id == user_id,
@@ -84,6 +98,16 @@ def reservation_scope_clause(db: Session, user: User) -> tuple[set[int], set[int
 
 def ensure_can_view_owner_club(db: Session, user: User, club_id: int) -> None:
     if not can_manage_club(db, user, club_id) or user.role not in (UserRole.OWNER.value, UserRole.PLATFORM_ADMIN.value):
+        raise _forbidden()
+
+
+def ensure_can_manage_club(db: Session, user: User, club_id: int) -> None:
+    if not can_manage_club(db, user, club_id):
+        raise _forbidden()
+
+
+def ensure_can_manage_branch(db: Session, user: User, branch_id: int) -> None:
+    if not can_manage_branch(db, user, branch_id):
         raise _forbidden()
 
 

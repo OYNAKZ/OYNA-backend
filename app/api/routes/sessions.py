@@ -23,6 +23,7 @@ def get_sessions(
 def post_session(
     payload: SessionCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     _: object = Depends(require_roles(UserRole.CLUB_ADMIN, UserRole.OWNER, UserRole.PLATFORM_ADMIN)),
 ) -> SessionRead:
-    return create_session(db, payload)
+    return create_session(db, payload, current_user)

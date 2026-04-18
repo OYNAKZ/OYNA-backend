@@ -6,7 +6,20 @@ from sqlalchemy import delete, text
 from app.core.constants import ScopeRole, UserRole
 from app.core.db import SessionLocal, engine
 from app.core.security import create_access_token, hash_password
-from app.models import Base, Branch, Club, Reservation, Seat, SeatStatusHistory, Session, StaffAssignment, User, Zone
+from app.models import (
+    Base,
+    Branch,
+    Club,
+    Payment,
+    PaymentWebhookEvent,
+    Reservation,
+    Seat,
+    SeatStatusHistory,
+    Session,
+    StaffAssignment,
+    User,
+    Zone,
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -22,6 +35,8 @@ def prepare_schema() -> None:
 @pytest.fixture(autouse=True)
 def clean_db() -> None:
     with SessionLocal() as db:
+        db.execute(delete(PaymentWebhookEvent))
+        db.execute(delete(Payment))
         db.execute(delete(SeatStatusHistory))
         db.execute(delete(StaffAssignment))
         db.execute(delete(Session))

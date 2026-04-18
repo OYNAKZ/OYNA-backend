@@ -9,8 +9,8 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[UserRead])
-def get_users() -> list[UserRead]:
-    return get_all_users()
+def get_users(current_user: User = Depends(get_current_user)) -> list[UserRead]:
+    return get_all_users(current_user)
 
 
 @router.get("/me", response_model=UserRead)
@@ -19,5 +19,5 @@ def get_me(current_user: User = Depends(get_current_user)) -> UserRead:
 
 
 @router.get("/{user_id}", response_model=UserRead)
-def get_user(user_id: int) -> UserRead:
-    return get_user_by_id(user_id)
+def get_user(user_id: int, current_user: User = Depends(get_current_user)) -> UserRead:
+    return get_user_by_id(user_id, current_user)

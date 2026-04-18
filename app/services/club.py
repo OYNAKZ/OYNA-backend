@@ -14,6 +14,8 @@ def list_clubs(db: Session) -> list[ClubRead]:
 
 
 def create_club(db: Session, payload: ClubCreate, current_user: User) -> ClubRead:
+    if current_user.role not in (UserRole.OWNER.value, UserRole.PLATFORM_ADMIN.value):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
     try:
         club = repository.create_item(db, payload)
     except IntegrityError as exc:

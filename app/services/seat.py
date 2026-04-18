@@ -1,30 +1,28 @@
-from datetime import date, datetime, time, timezone
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.constants import SeatOperationalStatus
+from app.models.user import User
 from app.models.zone import Zone
 from app.repositories import seat as repository
-from app.repositories.reservation import ReservationRepository
-from app.repositories.session import SessionRepository
 from app.schemas.seat import SeatAvailabilityRead, SeatAvailabilitySlot, SeatCreate, SeatRead
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+from app.services.availability import build_daily_availability_slots
+from app.services.policies import ensure_can_manage_branch, ensure_staff_scope_access
 
 
 def list_seats(db: Session) -> list[SeatRead]:
     return repository.list_items(db)
 
 
-def create_seat(db: Session, payload: SeatCreate) -> SeatRead:
-    if db.get(Zone, payload.zone_id) is None:
+def create_seat(db: Session, payload: SeatCreate, current_user: User) -> SeatRead:
+    zone = db.get(Zone, payload.zone_id)
+    if zone is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone not found")
+    ensure_staff_scope_access(db, current_user)
+    ensure_can_manage_branch(db, current_user, zone.branch_id)
     try:
         seat = repository.create_item(db, payload)
     except IntegrityError as exc:
@@ -43,53 +41,11 @@ def create_seat(db: Session, payload: SeatCreate) -> SeatRead:
 
 
 def get_seat_availability(db: Session, seat_id: int, target_date: date) -> SeatAvailabilityRead:
-    seat = repository.SeatRepository(db).get_by_id(seat_id)
+    seat = repository.SeatRepository(db).get_by_id_with_location(seat_id)
     if seat is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Seat not found")
-    day_start = datetime.combine(target_date, time.min, tzinfo=timezone.utc)
-    day_end = datetime.combine(target_date, time.max, tzinfo=timezone.utc)
-    if seat.operational_status in (SeatOperationalStatus.MAINTENANCE.value, SeatOperationalStatus.OFFLINE.value):
-        return SeatAvailabilityRead(
-            seat_id=seat_id,
-            date=target_date.isoformat(),
-            slots=[
-                SeatAvailabilitySlot(
-                    start=day_start,
-                    end=day_end,
-                    status=seat.operational_status,
-                )
-            ],
-        )
-
-    intervals = ReservationRepository(db).list_booked_intervals_for_day(seat_id=seat_id, target_date=target_date)
-    intervals.extend(SessionRepository(db).list_booked_intervals_for_day(seat_id=seat_id, target_date=target_date))
-
-    clamped = []
-    for start_at, end_at in intervals:
-        start = max(_as_utc(start_at), day_start)
-        end = min(_as_utc(end_at), day_end)
-        if start < end:
-            clamped.append((start, end))
-
-    merged: list[tuple[datetime, datetime]] = []
-    for start_at, end_at in sorted(clamped, key=lambda item: item[0]):
-        if not merged or start_at > merged[-1][1]:
-            merged.append((start_at, end_at))
-            continue
-        merged[-1] = (merged[-1][0], max(merged[-1][1], end_at))
-
-    slots: list[SeatAvailabilitySlot] = []
-    cursor = day_start
-    for start_at, end_at in merged:
-        if cursor < start_at:
-            slots.append(SeatAvailabilitySlot(start=cursor, end=start_at, status="free"))
-        slots.append(SeatAvailabilitySlot(start=start_at, end=end_at, status="booked"))
-        cursor = max(cursor, end_at)
-
-    if cursor < day_end:
-        slots.append(SeatAvailabilitySlot(start=cursor, end=day_end, status="free"))
-
-    if not slots:
-        slots.append(SeatAvailabilitySlot(start=day_start, end=day_end, status="free"))
-
+    slots = [
+        SeatAvailabilitySlot(start=start_at, end=end_at, status=status_value)
+        for start_at, end_at, status_value in build_daily_availability_slots(db, seat=seat, target_date=target_date)
+    ]
     return SeatAvailabilityRead(seat_id=seat_id, date=target_date.isoformat(), slots=slots)

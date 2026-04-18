@@ -3,17 +3,21 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.club import Club
+from app.models.user import User
 from app.repositories import branch as repository
 from app.schemas.branch import BranchCreate, BranchRead
+from app.services.policies import ensure_can_manage_club, ensure_staff_scope_access
 
 
 def list_branches(db: Session) -> list[BranchRead]:
     return repository.list_items(db)
 
 
-def create_branch(db: Session, payload: BranchCreate) -> BranchRead:
+def create_branch(db: Session, payload: BranchCreate, current_user: User) -> BranchRead:
     if db.get(Club, payload.club_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club not found")
+    ensure_staff_scope_access(db, current_user)
+    ensure_can_manage_club(db, current_user, payload.club_id)
     try:
         return repository.create_item(db, payload)
     except IntegrityError as exc:

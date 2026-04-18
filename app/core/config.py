@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     auth_anti_enumeration: bool = False
     auth_password_hash_scheme: str = "bcrypt_sha256"
     auth_bcrypt_rounds: int = 12
+    reservation_hold_ttl_seconds: int = 900
+    payment_provider_default: str = "fake"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

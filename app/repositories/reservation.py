@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timezone
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.constants import ACTIVE_RESERVATION_STATUSES
+from app.core.constants import ACTIVE_RESERVATION_STATUSES, PAYMENT_HOLD_RESERVATION_STATUSES, ReservationStatus
 from app.models.branch import Branch
 from app.models.reservation import Reservation
 from app.models.seat import Seat
@@ -37,6 +37,16 @@ class ReservationRepository:
     def list_all(self) -> list[Reservation]:
         return list(self.db.scalars(select(Reservation).order_by(Reservation.id)))
 
+    def list_all_with_location(self) -> list[Reservation]:
+        stmt = (
+            select(Reservation)
+            .options(
+                joinedload(Reservation.seat).joinedload(Seat.zone).joinedload(Zone.branch),
+            )
+            .order_by(Reservation.id)
+        )
+        return list(self.db.scalars(stmt).unique())
+
     def get_club_id(self, reservation_id: int) -> int | None:
         stmt = (
             select(Branch.club_id)
@@ -60,17 +70,67 @@ class ReservationRepository:
         )
         return list(self.db.execute(stmt).all())
 
-    def has_overlap(self, *, seat_id: int, start_at, end_at) -> bool:
+    def list_expired_payment_holds(self, *, now: datetime) -> list[Reservation]:
+        stmt = select(Reservation).where(
+            Reservation.status.in_(PAYMENT_HOLD_RESERVATION_STATUSES),
+            Reservation.expires_at.is_not(None),
+            Reservation.expires_at <= now,
+        )
+        return list(self.db.scalars(stmt))
+
+    def list_overlapping_intervals(
+        self,
+        *,
+        seat_ids: list[int],
+        start_at: datetime,
+        end_at: datetime,
+        reference_time: datetime | None = None,
+    ) -> list[tuple[int, datetime, datetime]]:
+        if not seat_ids:
+            return []
+        stmt = select(Reservation.seat_id, Reservation.start_at, Reservation.end_at).where(
+            Reservation.seat_id.in_(seat_ids),
+            Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+            Reservation.start_at < end_at,
+            Reservation.end_at > start_at,
+            self._active_reservation_predicate(reference_time=reference_time, interval_start=start_at),
+        )
+        return list(self.db.execute(stmt).all())
+
+    def has_overlap(self, *, seat_id: int, start_at, end_at, reference_time: datetime | None = None) -> bool:
         stmt = select(Reservation.id).where(
             and_(
                 Reservation.seat_id == seat_id,
                 Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
                 Reservation.start_at < end_at,
                 Reservation.end_at > start_at,
-                or_(Reservation.cancelled_at.is_(None), Reservation.cancelled_at > start_at),
+                self._active_reservation_predicate(reference_time=reference_time, interval_start=start_at),
             )
         )
         return self.db.scalar(stmt) is not None
+
+    def has_active_for_seat(
+        self,
+        *,
+        seat_id: int,
+        exclude_reservation_id: int | None = None,
+        reference_time: datetime | None = None,
+    ) -> bool:
+        stmt = select(Reservation.id).where(
+            Reservation.seat_id == seat_id,
+            Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+            self._active_reservation_predicate(reference_time=reference_time, interval_start=reference_time or datetime.now(timezone.utc)),
+        )
+        if exclude_reservation_id is not None:
+            stmt = stmt.where(Reservation.id != exclude_reservation_id)
+        return self.db.scalar(stmt) is not None
+
+    def get_by_user_and_idempotency_key(self, *, user_id: int, idempotency_key: str) -> Reservation | None:
+        stmt = select(Reservation).where(
+            Reservation.user_id == user_id,
+            Reservation.idempotency_key == idempotency_key,
+        )
+        return self.db.scalar(stmt)
 
     def create(self, payload: ReservationCreate) -> Reservation:
         item = Reservation(**payload.model_dump())
@@ -86,6 +146,27 @@ class ReservationRepository:
         self.db.commit()
         self.db.refresh(reservation)
         return reservation
+
+    @staticmethod
+    def _active_reservation_predicate(*, reference_time: datetime | None, interval_start: datetime):
+        time_reference = reference_time or interval_start
+        return and_(
+            Reservation.cancelled_at.is_(None),
+            or_(
+                Reservation.status != ReservationStatus.PENDING_PAYMENT.value,
+                and_(
+                    Reservation.expires_at.is_not(None),
+                    Reservation.expires_at > time_reference,
+                ),
+            ),
+            or_(
+                Reservation.status != ReservationStatus.CREATED.value,
+                and_(
+                    Reservation.expires_at.is_not(None),
+                    Reservation.expires_at > time_reference,
+                ),
+            ),
+        )
 
 
 def list_items(db: Session) -> list[Reservation]:

@@ -3,10 +3,13 @@ from __future__ import annotations
 from datetime import date, datetime, time, timezone
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.constants import SessionStatus
+from app.models.branch import Branch
+from app.models.seat import Seat
 from app.models.session import Session as SessionModel
+from app.models.zone import Zone
 from app.schemas.session import SessionCreate
 
 
@@ -42,6 +45,17 @@ class SessionRepository:
     def list_all(self) -> list[SessionModel]:
         return list(self.db.scalars(select(SessionModel).order_by(SessionModel.id)))
 
+    def list_all_with_location(self) -> list[SessionModel]:
+        stmt = (
+            select(SessionModel)
+            .options(joinedload(SessionModel.seat).joinedload(Seat.zone).joinedload(Zone.branch))
+            .join(Seat, SessionModel.seat_id == Seat.id)
+            .join(Zone, Seat.zone_id == Zone.id)
+            .join(Branch, Zone.branch_id == Branch.id)
+            .order_by(SessionModel.id)
+        )
+        return list(self.db.scalars(stmt).unique())
+
     def list_by_user(self, user_id: int) -> list[SessionModel]:
         stmt = select(SessionModel).where(SessionModel.user_id == user_id).order_by(SessionModel.id)
         return list(self.db.scalars(stmt))
@@ -57,6 +71,24 @@ class SessionRepository:
         )
         rows = self.db.execute(stmt).all()
         return [(started_at, ended_at or planned_end_at) for started_at, planned_end_at, ended_at in rows]
+
+    def list_overlapping_intervals(
+        self,
+        *,
+        seat_ids: list[int],
+        start_at: datetime,
+        end_at: datetime,
+    ) -> list[tuple[int, datetime, datetime]]:
+        if not seat_ids:
+            return []
+        stmt = select(SessionModel.seat_id, SessionModel.started_at, SessionModel.planned_end_at, SessionModel.ended_at).where(
+            SessionModel.seat_id.in_(seat_ids),
+            SessionModel.status != SessionStatus.CANCELLED.value,
+            SessionModel.started_at < end_at,
+            SessionModel.planned_end_at > start_at,
+        )
+        rows = self.db.execute(stmt).all()
+        return [(seat_id, started_at, ended_at or planned_end_at) for seat_id, started_at, planned_end_at, ended_at in rows]
 
     def create(self, payload: SessionCreate) -> SessionModel:
         item = SessionModel(**payload.model_dump())

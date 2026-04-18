@@ -4,8 +4,15 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user
 from app.core.db import get_db
 from app.models.user import User
-from app.schemas.reservation import ReservationCreate, ReservationDetailRead, ReservationRead
-from app.services.reservation import cancel_reservation, create_reservation, get_reservation_detail, list_reservations
+from app.schemas.reservation import ReservationCreate, ReservationDetailRead, ReservationHoldCreate, ReservationRead
+from app.services.reservation import (
+    cancel_reservation,
+    confirm_reservation_hold,
+    create_reservation,
+    create_reservation_hold,
+    get_reservation_detail,
+    list_reservations,
+)
 
 router = APIRouter()
 
@@ -34,6 +41,24 @@ def post_reservation(
     current_user: User = Depends(get_current_user),
 ) -> ReservationRead:
     return create_reservation(db, payload, current_user)
+
+
+@router.post("/holds", response_model=ReservationRead)
+def post_reservation_hold(
+    payload: ReservationHoldCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ReservationRead:
+    return create_reservation_hold(db, payload, current_user)
+
+
+@router.patch("/{reservation_id}/confirm", response_model=ReservationRead)
+def patch_reservation_confirm(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ReservationRead:
+    return confirm_reservation_hold(db, reservation_id, current_user)
 
 
 @router.patch("/{reservation_id}/cancel", response_model=ReservationRead)
