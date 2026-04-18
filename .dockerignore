@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.db
+ci-test.db
+project.db
+.env
+docker-compose.override.yml
