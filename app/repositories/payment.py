@@ -21,6 +21,10 @@ class PaymentRepository:
         )
         return self.db.scalar(stmt)
 
+    def list_all(self) -> list[Payment]:
+        stmt = select(Payment).order_by(Payment.created_at.desc(), Payment.id.desc())
+        return list(self.db.scalars(stmt))
+
     def get_by_provider_payment_id(self, *, provider: str, provider_payment_id: str) -> Payment | None:
         stmt = select(Payment).where(
             Payment.provider == provider,

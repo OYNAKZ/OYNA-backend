@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     auth_bcrypt_rounds: int = 12
     reservation_hold_ttl_seconds: int = 900
     payment_provider_default: str = "fake"
+    cors_allowed_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080"
+    )
+    dev_seed_admin_email: str | None = None
+    dev_seed_admin_password: str | None = None
+    dev_seed_admin_full_name: str = "OYNA Local Admin"
+    dev_seed_admin_role: str = "platform_admin"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

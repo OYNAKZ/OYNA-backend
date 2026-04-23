@@ -10,6 +10,8 @@ from app.models.user import User
 from app.repositories.payment import PaymentRepository, PaymentWebhookEventRepository
 from app.repositories.reservation import ReservationRepository
 from app.schemas.payment import PaymentCreate, PaymentRead
+from app.schemas.common import PaginatedResponse
+from app.schemas.payment import PaymentListItemRead
 from app.services.payment_provider import get_payment_provider
 from app.services.policies import ensure_can_operate_reservation
 from app.services.reservation import confirm_reservation_hold_for_payment
@@ -124,6 +126,35 @@ def get_payment(db: Session, payment_id: int, current_user: User) -> PaymentRead
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
     _ensure_payment_access(db, payment, current_user)
     return PaymentRead.model_validate(payment)
+
+
+def list_payments(
+    db: Session,
+    current_user: User,
+    *,
+    status_value: str | None,
+    page: int,
+    page_size: int,
+) -> PaginatedResponse[PaymentListItemRead]:
+    payments = PaymentRepository(db).list_all()
+    visible: list[Payment] = []
+    for payment in payments:
+        if status_value is not None and payment.status != status_value:
+            continue
+        try:
+            _ensure_payment_access(db, payment, current_user)
+        except HTTPException:
+            continue
+        visible.append(payment)
+
+    start = max(page - 1, 0) * page_size
+    items = visible[start : start + page_size]
+    return PaginatedResponse[PaymentListItemRead](
+        items=[PaymentListItemRead.model_validate(item) for item in items],
+        total=len(visible),
+        page=page,
+        page_size=page_size,
+    )
 
 
 def reconcile_payment(db: Session, payment_id: int, current_user: User) -> PaymentRead:

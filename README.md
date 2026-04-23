@@ -36,6 +36,10 @@ Core settings:
 - `AUTH_PASSWORD_MIN_LEN`
 - `AUTH_PASSWORD_MAX_LEN`
 - `AUTH_PASSWORD_HASH_SCHEME`
+- `CORS_ALLOWED_ORIGINS`
+- `DEV_SEED_ADMIN_EMAIL`
+- `DEV_SEED_ADMIN_PASSWORD`
+- `DEV_SEED_ADMIN_ROLE`
 
 Example local PostgreSQL URL:
 
@@ -89,6 +93,16 @@ docker compose up --build
 ```
 
 Backend will be available at `http://localhost:8000`.
+
+For local WEB admin development you can seed an admin account on startup:
+
+```env
+DEV_SEED_ADMIN_EMAIL=admin@oyna.local
+DEV_SEED_ADMIN_PASSWORD=admin-password-123
+DEV_SEED_ADMIN_ROLE=platform_admin
+```
+
+The backend will create this account if it does not already exist. Public `POST /api/v1/auth/register` still creates only regular `user` accounts.
 
 ## Tests
 

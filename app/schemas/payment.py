@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.core.constants import PaymentProviderName, PaymentStatus
+from app.schemas.user import UserRead
 
 
 class PaymentCreate(BaseModel):
@@ -28,6 +29,10 @@ class PaymentRead(BaseModel):
     checkout_url: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class PaymentListItemRead(PaymentRead):
+    user: UserRead | None = None
 
 
 class PaymentWebhookEnvelope(BaseModel):
