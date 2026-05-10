@@ -57,3 +57,8 @@ def test_login_wrong_password() -> None:
 def test_login_unknown_email() -> None:
     response = client.post(LOGIN_URL, json={"email": "nobody@example.com", "password": "irrelevant"})
     assert response.status_code == 401
+
+
+def test_login_invalid_email_returns_422() -> None:
+    response = client.post(LOGIN_URL, json={"email": "admin@oyna.local", "password": "irrelevant"})
+    assert response.status_code == 422

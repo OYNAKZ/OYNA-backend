@@ -10,7 +10,7 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.db import SessionLocal
 from app.core.logging import setup_logging
-from app.services.bootstrap import seed_local_admin
+from app.services.bootstrap import seed_local_admin, seed_mobile_demo_inventory
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             db.execute(text("SELECT 1"))
         logger.info("Database connectivity check passed")
         seed_local_admin()
+        seed_mobile_demo_inventory()
     except Exception:
         logger.exception("Database connectivity check failed during startup")
     yield

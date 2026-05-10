@@ -29,7 +29,7 @@ class ClubZoneLoadRead(BaseModel):
 
 
 class ClubOperationsSummaryRead(BaseModel):
-    club_id: int
+    club_id: int | None
     branch_id: int | None
     active_sessions: int
     active_reservations: int

@@ -285,7 +285,17 @@ def get_live_club_summary(db: Session, current_user: User, branch_id: int | None
 
     seats = db.scalars(seat_stmt).unique().all()
     if not seats:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club scope not found")
+        return ClubOperationsSummaryRead(
+            club_id=next(iter(club_ids), None) if not allow_all else None,
+            branch_id=branch_id,
+            active_sessions=0,
+            active_reservations=0,
+            occupied_seats=0,
+            available_seats=0,
+            maintenance_seats=0,
+            offline_seats=0,
+            zone_load=[],
+        )
 
     seat_ids = [seat.id for seat in seats]
     active_reservations = (

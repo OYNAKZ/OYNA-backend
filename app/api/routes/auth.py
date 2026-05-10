@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, status
+from pydantic import ValidationError
 
 from app.schemas.auth import LoginRequest, RegisterRequest, RegisterResponse, TokenResponse
 from app.services.auth import (
@@ -15,7 +16,13 @@ router = APIRouter()
 async def login(request: Request) -> TokenResponse:
     content_type = request.headers.get("content-type", "")
     if "application/json" in content_type:
-        payload = LoginRequest.model_validate(await request.json())
+        try:
+            payload = LoginRequest.model_validate(await request.json())
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid login credentials",
+            ) from exc
         return authenticate_user(email=str(payload.email), password=payload.password)
 
     form = await request.form()
