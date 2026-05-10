@@ -1,133 +1,95 @@
 # OYNA Backend
 
-Backend foundation for the OYNA computer-club booking platform.
+FastAPI backend for the OYNA computer-club platform: authentication, clubs, branches, zones, seats, reservations, sessions, payments.
 
 ## Stack
 
+- Python 3.12
 - FastAPI
-- SQLAlchemy 2
-- Alembic
+- SQLAlchemy 2 + Alembic
 - PostgreSQL 16
 - Pydantic Settings
-- Pytest
-- Ruff
+- Pytest + Ruff
 
-## Project Run
+## Setup
 
-### 1. Create `.env`
-
-Copy `.env.example` to `.env`.
-
-The example file is preconfigured for Docker Compose, where PostgreSQL is reachable as `db`.
-If you run the app directly on your machine, change `DATABASE_URL` to use `localhost`.
-
-Core settings:
-
-- `APP_NAME`
-- `APP_ENV`
-- `DEBUG`
-- `API_PREFIX`
-- `DATABASE_URL`
-- `JWT_SECRET_KEY`
-- `JWT_ALGORITHM`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `REFRESH_TOKEN_EXPIRE_DAYS`
-- `LOG_LEVEL`
-- `AUTH_PASSWORD_MIN_LEN`
-- `AUTH_PASSWORD_MAX_LEN`
-- `AUTH_PASSWORD_HASH_SCHEME`
-- `CORS_ALLOWED_ORIGINS`
-- `DEV_SEED_ADMIN_EMAIL`
-- `DEV_SEED_ADMIN_PASSWORD`
-- `DEV_SEED_ADMIN_ROLE`
-
-Example local PostgreSQL URL:
-
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/oyna
-```
-
-### 2. Install dependencies
+### 1. Create virtual environment
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate       # Linux / macOS
+.venv\Scripts\Activate.ps1      # Windows PowerShell
 pip install -r requirements.txt
 ```
 
-On Windows PowerShell, use:
+### 2. Configure environment
 
-```powershell
-.venv\Scripts\Activate.ps1
+```bash
+cp .env.example .env
 ```
 
-### 3. Run database
+Minimum required values:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/oyna
+JWT_SECRET_KEY=change-me-to-something-random
+```
+
+To seed a local admin account on first startup:
+
+```env
+DEV_SEED_ADMIN_EMAIL=admin@oyna.kz
+DEV_SEED_ADMIN_PASSWORD=yourpassword
+DEV_SEED_ADMIN_ROLE=platform_admin
+```
+
+### 3. Start PostgreSQL
 
 ```bash
 docker compose up -d db
 ```
 
-### 4. Apply migrations
+Or point `DATABASE_URL` at any running PostgreSQL 16 instance.
+
+### 4. Run migrations
 
 ```bash
 alembic upgrade head
 ```
 
-### 5. Start backend
+### 5. Start the server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-## Health Endpoints
+API: `http://localhost:8000`  
+Swagger: `http://localhost:8000/docs`
 
-- `GET /health`
-- `GET /api/v1/health`
-
-## Docker
-
-Start backend and PostgreSQL together:
+## Docker (full stack)
 
 ```bash
 docker compose up --build
 ```
 
-Backend will be available at `http://localhost:8000`.
-
-For local WEB admin development you can seed an admin account on startup:
-
-```env
-DEV_SEED_ADMIN_EMAIL=admin@oyna.local
-DEV_SEED_ADMIN_PASSWORD=admin-password-123
-DEV_SEED_ADMIN_ROLE=platform_admin
-```
-
-The backend will create this account if it does not already exist. Public `POST /api/v1/auth/register` still creates only regular `user` accounts.
+Starts backend + PostgreSQL. Backend on port `8000`.
 
 ## Tests
 
-Run all tests:
-
 ```bash
-DATABASE_URL=sqlite:///./ci-test.db JWT_SECRET_KEY=test-secret pytest app/tests
+DATABASE_URL=sqlite:///./ci-test.db JWT_SECRET_KEY=test pytest app/tests
 ```
 
-## Quality Checks
+## Lint
 
 ```bash
 ruff check .
 ruff format --check .
-DATABASE_URL=sqlite:///./ci-test.db JWT_SECRET_KEY=test-secret pytest app/tests
 ```
 
-## API Documentation
+## Health
 
-Full endpoint documentation with request/response examples is available in [docs/API.md](/Users/meirbektokabaev/IdeaProjects/OYNA/docs/API.md).
-
-## Notes
-
-- Settings are loaded from `.env`.
-- The app fails on startup if required settings such as `DATABASE_URL` or `JWT_SECRET_KEY` are missing.
-- Database schema changes must go through Alembic migrations.
-- `GET /health` and `GET /api/v1/health` are both available.
-- Protected resources include `/api/v1/users`, `/api/v1/clubs`, `/api/v1/branches`, `/api/v1/zones`, `/api/v1/seats`, `/api/v1/reservations`, `/api/v1/sessions`, `/api/v1/operations`, and `/api/v1/owner`.
+```
+GET /health
+GET /api/v1/health
+```
